@@ -224,9 +224,13 @@ async function* synthesizeStream(
     ? buildContextWithTask(userMessage, taskId, jiraData, gitlabData)
     : buildContextGeneral(userMessage, taskId, historyTaskIds);
 
+  // Segunda camada de segurança: cap de histórico (o controller já limpou,
+  // mas garante que nunca mais que 10 mensagens cheguem à API Anthropic).
+  const MAX_HISTORY_MSGS = 10;
   const validHistory = history
     .filter((m) => m && (m.role === "user" || m.role === "assistant") && m.content)
-    .map((m) => ({ role: m.role, content: String(m.content) }));
+    .map((m) => ({ role: m.role, content: String(m.content) }))
+    .slice(-MAX_HISTORY_MSGS);
 
   const messages = [
     ...validHistory,

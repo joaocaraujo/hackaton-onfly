@@ -3,10 +3,12 @@ const { fetchJiraTask } = require("../agents/jiraAgent");
 const { fetchGitlabMR } = require("../agents/gitlabAgent");
 const { synthesizeStream } = require("../agents/synthesizerAgent");
 
+// Máximo de pares (user + assistant) mantidos no histórico enviado à LLM.
+// Evita blowup de context window com projetos múltiplos.
+const MAX_HISTORY_PAIRS = 5; // = 10 mensagens
+
 /**
- * Varre o histórico de mensagens e retorna todos os IDs de task Jira
- * que foram explicitamente citados nas mensagens do usuário.
- * Usado para construir o contexto de isolamento anti-alucinação.
+ * Varre histórico e retorna todos os IDs de task Jira citados por mensagens do usuário.
  */
 function extractHistoryTaskIds(history) {
   const ids = new Set();
@@ -17,6 +19,86 @@ function extractHistoryTaskIds(history) {
     }
   }
   return [...ids];
+}
+
+/**
+ * Extrai o ID de task de uma mensagem do usuário, se houver.
+ */
+function getTaskIdFromMsg(content) {
+  const m = (content || "").match(/\b([A-Z]+-\d+)\b/);
+  return m ? m[1] : null;
+}
+
+/**
+ * Limpa o histórico antes de enviar para a LLM:
+ *
+ * - Se a pergunta atual é sobre uma task NOVA (nunca vista no histórico):
+ *     → Remove pares de outros projetos/tasks do histórico.
+ *     → Mantém apenas pares sem task ou da mesma task.
+ *
+ * - Se a pergunta atual é geral/chitchat (sem taskId):
+ *     → Mantém histórico recente, mas só os últimos MAX_HISTORY_PAIRS pares.
+ *     → Não dropa nada — follow-ups sobre a task anterior precisam de contexto.
+ *
+ * - Se é uma pergunta de follow-up da MESMA task:
+ *     → Mantém histórico completo (até o cap).
+ *
+ * Em todos os casos: aplica o cap de MAX_HISTORY_PAIRS.
+ */
+function buildCleanHistory(history, currentTaskId, historyTaskIds) {
+  if (!history || history.length === 0) return [];
+
+  // Monta pares [user, assistant] para manipulação atômica
+  const pairs = [];
+  for (let i = 0; i < history.length; i++) {
+    if (history[i].role === "user") {
+      const pair = { user: history[i], assistant: history[i + 1] || null };
+      pairs.push(pair);
+      if (pair.assistant) i++; // pula o assistant que já foi consumido
+    }
+  }
+
+  let filtered = pairs;
+
+  // Caso: nova task nunca antes citada → remove pares de outras tasks
+  const isNewTask =
+    currentTaskId &&
+    historyTaskIds.length > 0 &&
+    !historyTaskIds.includes(currentTaskId);
+
+  if (isNewTask) {
+    const before = pairs.length;
+    filtered = pairs.filter((pair) => {
+      const taskInPair = getTaskIdFromMsg(pair.user?.content);
+      // Mantém par se: sem task OU mesma task atual
+      return !taskInPair || taskInPair === currentTaskId;
+    });
+    const dropped = before - filtered.length;
+    if (dropped > 0) {
+      console.log(
+        `[ChatController] LIMPEZA DE HISTÓRICO — Nova task detectada: ${currentTaskId}. ` +
+        `Removidos ${dropped} par(es) de tasks anteriores [${historyTaskIds.join(", ")}].`
+      );
+    }
+  }
+
+  // Aplica cap de pares
+  const capped = filtered.slice(-MAX_HISTORY_PAIRS);
+
+  if (filtered.length > MAX_HISTORY_PAIRS) {
+    console.log(
+      `[ChatController] HISTÓRICO TRUNCADO — ${filtered.length} pares → ${capped.length} (cap: ${MAX_HISTORY_PAIRS}).`
+    );
+  }
+
+  // Reconstrói array plano [user, assistant, user, assistant, ...]
+  const flat = [];
+  for (const pair of capped) {
+    if (pair.user) flat.push(pair.user);
+    if (pair.assistant) flat.push(pair.assistant);
+  }
+
+  return flat;
 }
 
 async function handleChat(req, res) {
@@ -31,7 +113,6 @@ async function handleChat(req, res) {
 
   const userMessage = message.trim();
 
-  // Inicia SSE antes de qualquer processamento assíncrono
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
@@ -44,19 +125,24 @@ async function handleChat(req, res) {
     const { intent, taskId } = await routeIntent(userMessage);
     console.log(`[ChatController] Intent: ${intent} | TaskId: ${taskId}`);
 
-    // ── Detecção de contaminação de contexto ─────────────────────────────────
-    // Extrai tasks mencionadas em turnos anteriores para o sintetizador poder
-    // isolar o contexto atual e evitar alucinações cross-task.
+    // ── Análise do histórico recebido ────────────────────────────────────────
     const historyTaskIds = extractHistoryTaskIds(history);
-    const isNewTopic = intent !== "TASK_SPECIFIC" && historyTaskIds.length > 0;
 
+    // ── Limpeza de contexto ──────────────────────────────────────────────────
+    // Remove pares de tasks antigas quando há mudança de projeto/task,
+    // e aplica cap para não estourar context window.
+    const cleanHistory = buildCleanHistory(history, taskId, historyTaskIds);
+
+    const isNewTopic = intent !== "TASK_SPECIFIC" && historyTaskIds.length > 0;
     if (isNewTopic) {
       console.log(
-        `[ChatController] ISOLAMENTO ATIVADO — Pergunta atual não referencia task. ` +
-        `Tasks no histórico: [${historyTaskIds.join(", ")}]. ` +
-        `Sintetizador instruído a NÃO usar contexto dessas tasks.`
+        `[ChatController] ISOLAMENTO ATIVADO — Tasks no histórico original: [${historyTaskIds.join(", ")}].`
       );
     }
+
+    console.log(
+      `[ChatController] Histórico: ${history.length} msgs recebidas → ${cleanHistory.length} msgs enviadas à LLM.`
+    );
 
     // ── Passo 2: Busca de contexto ───────────────────────────────────────────
     let jiraData = null;
@@ -80,8 +166,8 @@ async function handleChat(req, res) {
       taskId,
       jiraData,
       gitlabData,
-      history,
-      historyTaskIds   // <-- contexto de isolamento anti-alucinação
+      cleanHistory,       // histórico já limpo e truncado
+      historyTaskIds      // IDs originais para o aviso de isolamento no prompt
     );
 
     for await (const chunk of stream) {

@@ -1,7 +1,10 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import landingHtml from '../landing-body.html?raw'
+import landingLogo from '../assets/logo.png'
 import '../landing.css'
+
+const LANDING_LOGO_PLACEHOLDER = '__LANDING_LOGO_SRC__'
 
 function animateCounter(
   el: HTMLElement,
@@ -41,9 +44,14 @@ export default function LandingPage() {
   const ref = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
 
+  const html = useMemo(
+    () => landingHtml.replaceAll(LANDING_LOGO_PLACEHOLDER, landingLogo),
+    [],
+  )
+
   useEffect(() => {
     document.title =
-      'FlashApp — O Custo Invisível do Turnover em Times de Engenharia'
+      'BrainFly — O Custo Invisível do Turnover em Times de Engenharia'
   }, [])
 
   useEffect(() => {
@@ -147,7 +155,7 @@ export default function LandingPage() {
     <div
       ref={ref}
       className="landing-page"
-      dangerouslySetInnerHTML={{ __html: landingHtml }}
+      dangerouslySetInnerHTML={{ __html: html }}
     />
   )
 }
