@@ -10,7 +10,7 @@ interface Message {
   streaming?: boolean
 }
 
-const API_URL = (import.meta.env.VITE_API_BASE_URL as string) ?? 'http://localhost:3001'
+const API_URL = 'https://hackaton-onfly-copy.vercel.app/api'
 
 const SUGGESTIONS = [
   'Me explica a task BANK-4087',
