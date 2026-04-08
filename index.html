@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlashApp — O Custo Invisivel do Turnover em Times de Engenharia</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+  :root{
+    --bg-primary:#0a0a0f;
+    --bg-secondary:#111119;
+    --bg-card:#16161f;
+    --bg-card-hover:#1c1c2a;
+    --text-primary:#e8e8ed;
+    --text-secondary:#9a9ab0;
+    --text-muted:#5c5c72;
+    --accent-purple:#7c3aed;
+    --accent-blue:#3b82f6;
+    --accent-cyan:#06b6d4;
+    --accent-green:#10b981;
+    --accent-red:#ef4444;
+    --accent-orange:#f59e0b;
+    --gradient-main:linear-gradient(135deg,#7c3aed,#3b82f6);
+    --gradient-warm:linear-gradient(135deg,#ef4444,#f59e0b);
+    --gradient-cool:linear-gradient(135deg,#06b6d4,#7c3aed);
+    --gradient-dev:linear-gradient(135deg,#3b82f6,#06b6d4);
+    --gradient-po:linear-gradient(135deg,#10b981,#06b6d4);
+    --border-subtle:rgba(124,58,237,0.15);
+    --glow-purple:0 0 80px rgba(124,58,237,0.15);
+    --glow-blue:0 0 80px rgba(59,130,246,0.12);
+    --glow-green:0 0 80px rgba(16,185,129,0.12);
+    --radius:12px;
+    --radius-lg:20px;
+    --transition:0.3s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  html{scroll-behavior:smooth;font-size:16px}
+
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+    background:var(--bg-primary);
+    color:var(--text-primary);
+    line-height:1.7;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+  }
+
+  /* ─── NAV ─── */
+  .nav{
+    position:fixed;top:0;left:0;right:0;z-index:1000;
+    padding:1rem 2rem;
+    background:rgba(10,10,15,0.8);
+    backdrop-filter:blur(20px);
+    border-bottom:1px solid var(--border-subtle);
+    display:flex;align-items:center;justify-content:space-between;
+    transition:var(--transition);
+  }
+  .nav.scrolled{background:rgba(10,10,15,0.95);box-shadow:var(--glow-purple)}
+  .nav-logo{
+    font-size:1.35rem;font-weight:800;letter-spacing:-0.5px;
+    background:var(--gradient-main);-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    background-clip:text;
+  }
+  .nav-logo span{font-weight:400;opacity:0.7;-webkit-text-fill-color:var(--text-muted);color:var(--text-muted)}
+  .nav-links{display:flex;gap:2rem;list-style:none}
+  .nav-links a{
+    color:var(--text-secondary);text-decoration:none;font-size:0.875rem;
+    font-weight:500;transition:var(--transition);position:relative;
+  }
+  .nav-links a::after{
+    content:'';position:absolute;bottom:-4px;left:0;width:0;height:2px;
+    background:var(--gradient-main);transition:var(--transition);border-radius:2px;
+  }
+  .nav-links a:hover{color:var(--text-primary)}
+  .nav-links a:hover::after{width:100%}
+
+  /* ─── HERO ─── */
+  .hero{
+    min-height:100vh;display:flex;align-items:center;justify-content:center;
+    text-align:center;padding:8rem 2rem 6rem;position:relative;overflow:hidden;
+  }
+  .hero::before{
+    content:'';position:absolute;top:-30%;left:50%;transform:translateX(-50%);
+    width:800px;height:800px;
+    background:radial-gradient(circle,rgba(124,58,237,0.12) 0%,transparent 70%);
+    pointer-events:none;
+  }
+  .hero::after{
+    content:'';position:absolute;bottom:0;left:0;right:0;height:200px;
+    background:linear-gradient(to top,var(--bg-primary),transparent);
+    pointer-events:none;
+  }
+  .hero-content{max-width:900px;position:relative;z-index:1}
+  .hero-badge{
+    display:inline-flex;align-items:center;gap:0.5rem;
+    padding:0.5rem 1.25rem;border-radius:50px;
+    background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.25);
+    font-size:0.8rem;font-weight:600;color:var(--accent-purple);
+    margin-bottom:2rem;letter-spacing:0.5px;text-transform:uppercase;
+  }
+  .hero-badge .pulse{
+    width:8px;height:8px;border-radius:50%;background:var(--accent-red);
+    animation:pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.4)}}
+
+  /* ─── HERO PERSONA PILLS ─── */
+  .hero-personas{
+    display:inline-flex;align-items:center;gap:0.5rem;
+    flex-wrap:wrap;justify-content:center;margin-bottom:1.5rem;
+  }
+  .persona-pill{
+    display:inline-flex;align-items:center;gap:0.4rem;
+    padding:0.35rem 0.85rem;border-radius:50px;font-size:0.78rem;font-weight:700;
+    letter-spacing:0.3px;
+  }
+  .persona-pill.dev{
+    background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.3);
+    color:#60a5fa;
+  }
+  .persona-pill.po{
+    background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);
+    color:#34d399;
+  }
+  .persona-pill.em{
+    background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.3);
+    color:#a78bfa;
+  }
+  .persona-pill svg{flex-shrink:0}
+  .pill-divider{
+    width:1px;height:16px;background:var(--border-subtle);margin:0 0.25rem;
+  }
+
+  .hero h1{
+    font-size:clamp(2.4rem,5.5vw,4.2rem);font-weight:800;
+    line-height:1.1;letter-spacing:-1.5px;margin-bottom:1.5rem;
+  }
+  .hero h1 .gradient-text{
+    background:var(--gradient-main);-webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;background-clip:text;
+  }
+  .hero h1 .gradient-warm{
+    background:var(--gradient-warm);-webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;background-clip:text;
+  }
+  .hero-sub{
+    font-size:clamp(1.05rem,2vw,1.3rem);color:var(--text-secondary);
+    max-width:680px;margin:0 auto 3rem;line-height:1.8;
+  }
+  .hero-stats{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;
+    max-width:720px;margin:0 auto;
+  }
+  .hero-stat{
+    padding:1.5rem 1rem;border-radius:var(--radius);
+    background:var(--bg-card);border:1px solid var(--border-subtle);
+    transition:var(--transition);
+  }
+  .hero-stat:hover{
+    border-color:rgba(124,58,237,0.35);
+    box-shadow:var(--glow-purple);transform:translateY(-2px);
+  }
+  .hero-stat .number{
+    font-size:2.6rem;font-weight:800;line-height:1;
+    background:var(--gradient-main);-webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;background-clip:text;
+    margin-bottom:0.35rem;
+  }
+  .hero-stat .label{font-size:0.78rem;color:var(--text-muted);font-weight:500;line-height:1.4}
+
+  /* ─── SECTIONS ─── */
+  section{padding:6rem 2rem;position:relative}
+  .container{max-width:1100px;margin:0 auto}
+
+  .section-label{
+    display:inline-flex;align-items:center;gap:0.5rem;
+    font-size:0.75rem;font-weight:700;text-transform:uppercase;
+    letter-spacing:1.5px;color:var(--accent-purple);margin-bottom:1rem;
+  }
+  .section-label .icon{font-size:1rem}
+  .section-title{
+    font-size:clamp(1.8rem,4vw,2.8rem);font-weight:800;
+    line-height:1.15;letter-spacing:-1px;margin-bottom:1rem;
+  }
+  .section-subtitle{
+    font-size:1.1rem;color:var(--text-secondary);max-width:640px;
+    line-height:1.8;margin-bottom:3rem;
+  }
+
+  .divider{
+    width:100%;height:1px;
+    background:linear-gradient(90deg,transparent,var(--border-subtle),transparent);
+    margin:0 auto;
+  }
+
+  /* ─── PERSONAS SECTION ─── */
+  .personas-section{background:var(--bg-secondary)}
+
+  .persona-grid{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));
+    gap:2rem;margin-top:1rem;
+  }
+
+  .persona-card{
+    padding:2.5rem;border-radius:var(--radius-lg);
+    background:var(--bg-card);border:1px solid var(--border-subtle);
+    transition:var(--transition);position:relative;overflow:hidden;
+    display:flex;flex-direction:column;gap:1.25rem;
+  }
+  .persona-card::before{
+    content:'';position:absolute;top:0;left:0;right:0;height:4px;
+    opacity:0;transition:var(--transition);
+  }
+  .persona-card.dev-card::before{background:var(--gradient-dev)}
+  .persona-card.po-card::before{background:var(--gradient-po)}
+
+  .persona-card.dev-card:hover{
+    border-color:rgba(59,130,246,0.35);
+    box-shadow:var(--glow-blue);transform:translateY(-4px);
+  }
+  .persona-card.po-card:hover{
+    border-color:rgba(16,185,129,0.35);
+    box-shadow:var(--glow-green);transform:translateY(-4px);
+  }
+  .persona-card:hover::before{opacity:1}
+
+  .persona-role-badge{
+    display:inline-flex;align-items:center;gap:0.6rem;
+    width:fit-content;padding:0.5rem 1rem;border-radius:50px;
+    font-size:0.78rem;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;
+  }
+  .persona-role-badge.dev{
+    background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.3);
+    color:#60a5fa;
+  }
+  .persona-role-badge.po{
+    background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);
+    color:#34d399;
+  }
+
+  .persona-card h3{
+    font-size:1.25rem;font-weight:800;letter-spacing:-0.4px;line-height:1.2;
+  }
+  .persona-card .persona-headline{
+    font-size:0.95rem;color:var(--text-secondary);line-height:1.7;
+    padding-bottom:1rem;border-bottom:1px solid var(--border-subtle);
+  }
+
+  .persona-benefits{
+    list-style:none;display:flex;flex-direction:column;gap:0.85rem;
+    flex:1;
+  }
+  .persona-benefits li{
+    display:flex;align-items:flex-start;gap:0.75rem;
+    font-size:0.9rem;color:var(--text-secondary);line-height:1.6;
+  }
+  .persona-benefits li .check{
+    flex-shrink:0;margin-top:2px;
+  }
+  .dev-card .persona-benefits li .check{color:var(--accent-blue)}
+  .po-card .persona-benefits li .check{color:var(--accent-green)}
+
+  .persona-quote{
+    margin-top:auto;padding:1rem 1.25rem;border-radius:var(--radius);
+    font-size:0.88rem;font-style:italic;line-height:1.6;
+    position:relative;
+  }
+  .dev-card .persona-quote{
+    background:rgba(59,130,246,0.06);border-left:3px solid rgba(59,130,246,0.4);
+    color:#93c5fd;
+  }
+  .po-card .persona-quote{
+    background:rgba(16,185,129,0.06);border-left:3px solid rgba(16,185,129,0.4);
+    color:#6ee7b7;
+  }
+
+  /* ─── PERSONAS COMPARISON TABLE ─── */
+  .comparison-strip{
+    margin-top:3rem;padding:2rem 2.5rem;border-radius:var(--radius-lg);
+    background:linear-gradient(145deg,rgba(124,58,237,0.05),var(--bg-card));
+    border:1px solid var(--border-subtle);
+  }
+  .comparison-strip h4{
+    font-size:1rem;font-weight:700;margin-bottom:1.5rem;
+    color:var(--text-secondary);text-align:center;letter-spacing:-0.2px;
+  }
+  .comparison-strip h4 strong{color:var(--text-primary)}
+  .comparison-rows{display:flex;flex-direction:column;gap:1rem}
+  .comparison-row{
+    display:grid;grid-template-columns:1fr auto 1fr;gap:1rem;align-items:center;
+  }
+  .comparison-row .cell{
+    padding:0.75rem 1rem;border-radius:var(--radius);
+    font-size:0.85rem;line-height:1.5;
+  }
+  .comparison-row .cell.dev-cell{
+    background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.15);
+    color:#93c5fd;
+  }
+  .comparison-row .cell.po-cell{
+    background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.15);
+    color:#6ee7b7;text-align:right;
+  }
+  .comparison-row .vs{
+    font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;
+    color:var(--text-muted);text-align:center;white-space:nowrap;
+  }
+
+  /* ─── PROBLEM SECTION ─── */
+  .problem-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;margin-bottom:4rem}
+  .problem-card{
+    padding:2rem;border-radius:var(--radius-lg);
+    background:var(--bg-card);border:1px solid var(--border-subtle);
+    transition:var(--transition);position:relative;overflow:hidden;
+  }
+  .problem-card::before{
+    content:'';position:absolute;top:0;left:0;right:0;height:3px;
+    background:var(--gradient-main);opacity:0;transition:var(--transition);
+  }
+  .problem-card:hover{
+    transform:translateY(-4px);border-color:rgba(124,58,237,0.3);
+    box-shadow:var(--glow-purple);
+  }
+  .problem-card:hover::before{opacity:1}
+  .problem-card .card-icon{
+    width:48px;height:48px;border-radius:12px;
+    background:rgba(124,58,237,0.1);
+    display:flex;align-items:center;justify-content:center;
+    margin-bottom:1.25rem;font-size:1.4rem;
+  }
+  .problem-card h3{font-size:1.1rem;font-weight:700;margin-bottom:0.6rem;letter-spacing:-0.3px}
+  .problem-card p{font-size:0.9rem;color:var(--text-secondary);line-height:1.7}
+
+  /* ─── STAT HIGHLIGHT BLOCKS ─── */
+  .stat-blocks{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:2rem;margin-top:3rem}
+  .stat-block{
+    padding:2.5rem;border-radius:var(--radius-lg);position:relative;overflow:hidden;
+    border:1px solid var(--border-subtle);
+  }
+  .stat-block.purple{background:linear-gradient(145deg,rgba(124,58,237,0.08),var(--bg-card))}
+  .stat-block.blue{background:linear-gradient(145deg,rgba(59,130,246,0.08),var(--bg-card))}
+  .stat-block.orange{background:linear-gradient(145deg,rgba(245,158,11,0.08),var(--bg-card))}
+  .stat-block .big-number{
+    font-size:clamp(3rem,6vw,4.5rem);font-weight:900;line-height:1;
+    margin-bottom:0.5rem;letter-spacing:-2px;
+  }
+  .stat-block.purple .big-number{
+    background:var(--gradient-main);-webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;background-clip:text;
+  }
+  .stat-block.blue .big-number{
+    background:linear-gradient(135deg,#3b82f6,#06b6d4);-webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;background-clip:text;
+  }
+  .stat-block.orange .big-number{
+    background:var(--gradient-warm);-webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;background-clip:text;
+  }
+  .stat-block .stat-desc{font-size:1.05rem;font-weight:600;margin-bottom:0.5rem}
+  .stat-block .stat-source{font-size:0.78rem;color:var(--text-muted);font-style:italic}
+  .stat-block .stat-detail{font-size:0.88rem;color:var(--text-secondary);margin-top:0.75rem;line-height:1.6}
+
+  /* ─── ABYSS / ENGINEERING SECTION ─── */
+  .abyss-section{background:var(--bg-secondary)}
+  .timeline{position:relative;margin-top:3rem}
+  .timeline::before{
+    content:'';position:absolute;left:24px;top:0;bottom:0;width:2px;
+    background:linear-gradient(to bottom,var(--accent-purple),var(--accent-blue),var(--accent-red));
+    border-radius:2px;
+  }
+  .timeline-item{
+    display:flex;gap:2rem;margin-bottom:2.5rem;position:relative;
+    padding-left:60px;
+  }
+  .timeline-dot{
+    position:absolute;left:16px;top:6px;width:18px;height:18px;
+    border-radius:50%;border:3px solid var(--accent-purple);
+    background:var(--bg-secondary);z-index:1;
+  }
+  .timeline-item:nth-child(2) .timeline-dot{border-color:var(--accent-blue)}
+  .timeline-item:nth-child(3) .timeline-dot{border-color:var(--accent-cyan)}
+  .timeline-item:nth-child(4) .timeline-dot{border-color:var(--accent-red)}
+  .timeline-content{
+    background:var(--bg-card);border:1px solid var(--border-subtle);
+    border-radius:var(--radius-lg);padding:2rem;flex:1;
+    transition:var(--transition);
+  }
+  .timeline-content:hover{
+    border-color:rgba(124,58,237,0.3);box-shadow:var(--glow-purple);
+  }
+  .timeline-content h3{font-size:1.15rem;font-weight:700;margin-bottom:0.5rem;letter-spacing:-0.3px}
+  .timeline-content p{font-size:0.92rem;color:var(--text-secondary);line-height:1.7}
+  .timeline-content .highlight-number{
+    font-size:1.8rem;font-weight:800;
+    background:var(--gradient-main);-webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;background-clip:text;
+    display:inline-block;margin-right:0.3rem;
+  }
+
+  /* ─── FEEDBACK LOOP VISUAL ─── */
+  .feedback-loop{
+    margin-top:4rem;padding:3rem;border-radius:var(--radius-lg);
+    background:linear-gradient(145deg,rgba(239,68,68,0.06),rgba(245,158,11,0.04),var(--bg-card));
+    border:1px solid rgba(239,68,68,0.2);text-align:center;
+    position:relative;overflow:hidden;
+  }
+  .feedback-loop::before{
+    content:'';position:absolute;top:-50%;right:-20%;
+    width:400px;height:400px;
+    background:radial-gradient(circle,rgba(239,68,68,0.06),transparent 70%);
+    pointer-events:none;
+  }
+  .feedback-loop h3{
+    font-size:1.5rem;font-weight:800;margin-bottom:1rem;letter-spacing:-0.5px;
+  }
+  .feedback-loop h3 .red{color:var(--accent-red)}
+
+  .loop-visual{
+    display:flex;align-items:center;justify-content:center;gap:1rem;
+    flex-wrap:wrap;margin:2rem 0;
+  }
+  .loop-step{
+    padding:1rem 1.5rem;border-radius:var(--radius);
+    background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);
+    font-size:0.88rem;font-weight:600;color:var(--text-primary);
+    max-width:200px;
+  }
+  .loop-arrow{
+    font-size:1.5rem;color:var(--accent-red);font-weight:800;
+    animation:arrowPulse 2s ease-in-out infinite;
+  }
+  @keyframes arrowPulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+  .feedback-loop .multiplier{
+    font-size:3.5rem;font-weight:900;
+    background:var(--gradient-warm);-webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;background-clip:text;
+    margin:1rem 0 0.5rem;line-height:1;
+  }
+  .feedback-loop .multiplier-label{color:var(--text-secondary);font-size:0.95rem}
+
+  /* ─── CTA SECTION ─── */
+  .cta-section{text-align:center;padding:8rem 2rem;position:relative;overflow:hidden}
+  .cta-section::before{
+    content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    width:600px;height:600px;
+    background:radial-gradient(circle,rgba(124,58,237,0.1),transparent 70%);
+    pointer-events:none;
+  }
+  .cta-content{max-width:700px;margin:0 auto;position:relative;z-index:1}
+  .cta-section h2{
+    font-size:clamp(2rem,4.5vw,3.2rem);font-weight:800;
+    line-height:1.15;letter-spacing:-1px;margin-bottom:1.25rem;
+  }
+  .cta-section p{
+    font-size:1.1rem;color:var(--text-secondary);margin-bottom:2.5rem;line-height:1.8;
+  }
+  .cta-buttons{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
+  .btn{
+    display:inline-flex;align-items:center;gap:0.5rem;
+    padding:1rem 2rem;border-radius:var(--radius);font-size:1rem;
+    font-weight:700;text-decoration:none;transition:var(--transition);
+    cursor:pointer;border:none;letter-spacing:-0.2px;
+  }
+  .btn-primary{
+    background:var(--gradient-main);color:#fff;
+    box-shadow:0 4px 24px rgba(124,58,237,0.3);
+  }
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(124,58,237,0.45)}
+  .btn-secondary{
+    background:transparent;color:var(--text-primary);
+    border:1px solid var(--border-subtle);
+  }
+  .btn-secondary:hover{border-color:rgba(124,58,237,0.4);background:rgba(124,58,237,0.05)}
+
+  /* ─── FOOTER ─── */
+  footer{
+    padding:3rem 2rem;text-align:center;
+    border-top:1px solid var(--border-subtle);
+    color:var(--text-muted);font-size:0.82rem;
+  }
+  footer .footer-logo{
+    font-size:1.1rem;font-weight:800;
+    background:var(--gradient-main);-webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;background-clip:text;
+    margin-bottom:0.75rem;display:inline-block;
+  }
+
+  /* ─── SCROLL ANIMATIONS ─── */
+  .reveal{
+    opacity:0;transform:translateY(30px);
+    transition:opacity 0.7s cubic-bezier(0.4,0,0.2,1),transform 0.7s cubic-bezier(0.4,0,0.2,1);
+  }
+  .reveal.visible{opacity:1;transform:translateY(0)}
+  .reveal-delay-1{transition-delay:0.1s}
+  .reveal-delay-2{transition-delay:0.2s}
+  .reveal-delay-3{transition-delay:0.3s}
+  .reveal-delay-4{transition-delay:0.4s}
+
+  /* ─── RESPONSIVE ─── */
+  @media(max-width:768px){
+    .nav-links{display:none}
+    .hero{padding:7rem 1.25rem 4rem}
+    .hero-stats{grid-template-columns:1fr;max-width:320px}
+    .hero-stat .number{font-size:2rem}
+    section{padding:4rem 1.25rem}
+    .stat-blocks{grid-template-columns:1fr}
+    .timeline::before{left:14px}
+    .timeline-item{padding-left:44px}
+    .timeline-dot{left:6px;width:16px;height:16px}
+    .loop-visual{flex-direction:column}
+    .loop-arrow{transform:rotate(90deg)}
+    .cta-section{padding:5rem 1.25rem}
+    .stat-block .big-number{font-size:3rem}
+    .persona-grid{grid-template-columns:1fr}
+    .comparison-row{grid-template-columns:1fr;gap:0.5rem}
+    .comparison-row .vs{display:none}
+    .comparison-row .cell.po-cell{text-align:left}
+  }
+
+  @media(max-width:480px){
+    .hero h1{font-size:2rem}
+    .problem-grid{grid-template-columns:1fr}
+    .hero-sub{font-size:1rem}
+    .section-title{font-size:1.6rem}
+    .feedback-loop{padding:2rem 1.25rem}
+    .feedback-loop .multiplier{font-size:2.5rem}
+    .hero-personas{gap:0.4rem}
+    .pill-divider{display:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── NAVIGATION ─── -->
+<nav class="nav" id="nav">
+  <div class="nav-logo">Flash<span>App</span></div>
+  <ul class="nav-links">
+    <li><a href="#para-quem">Para Quem</a></li>
+    <li><a href="#problema">O Problema</a></li>
+    <li><a href="#custos">Custos Reais</a></li>
+    <li><a href="#engenharia">Engenharia</a></li>
+    <li><a href="#ciclo">O Ciclo Fatal</a></li>
+    <li><a href="#solucao">Solucao</a></li>
+  </ul>
+</nav>
+
+<!-- ─── HERO ─── -->
+<section class="hero" id="hero">
+  <div class="hero-content">
+    <div class="hero-badge">
+      <span class="pulse"></span>
+      Dados que guiam equipes de produto de ponta a ponta
+    </div>
+
+    <div class="hero-personas">
+      <span class="persona-pill dev">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        Desenvolvedor
+      </span>
+      <span class="pill-divider"></span>
+      <span class="persona-pill po">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+        Product Owner
+      </span>
+      <span class="pill-divider"></span>
+      <span class="persona-pill em">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        Engineering Manager
+      </span>
+    </div>
+
+    <h1>
+      Sua empresa esta <span class="gradient-warm">sangrando dinheiro</span><br>
+      com cada desenvolvedor<br>
+      que <span class="gradient-text">vai embora</span>
+    </h1>
+    <p class="hero-sub">
+      O turnover em times de engenharia nao e apenas um problema de RH.
+      E uma hemorragia silenciosa de capital intelectual &mdash; e o FlashApp entrega
+      para cada membro do time os dados certos para agir: do Dev navegando debitos tecnicos
+      ate o PO garantindo que seus tickets expressem a dor real do cliente.
+    </p>
+    <div class="hero-stats">
+      <div class="hero-stat reveal">
+        <div class="number" data-target="213" data-suffix="%">0%</div>
+        <div class="label">Custo de reposicao de<br>profissionais altamente qualificados</div>
+      </div>
+      <div class="hero-stat reveal reveal-delay-1">
+        <div class="number" data-target="40" data-suffix="%">0%</div>
+        <div class="label">Mais tempo para entregar<br>features em times com debito tecnico</div>
+      </div>
+      <div class="hero-stat reveal reveal-delay-2">
+        <div class="number" data-target="2.5" data-suffix="x" data-decimal="true">0x</div>
+        <div class="label">Mais chance de demissao em<br>ambientes de codigo caotico</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─── PARA QUEM ─── -->
+<section class="personas-section" id="para-quem">
+  <div class="container">
+    <div class="section-label reveal">
+      <span class="icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      </span>
+      Para quem e o FlashApp?
+    </div>
+    <h2 class="section-title reveal">
+      Cada papel no time<br>
+      <span class="gradient-text">obtem o que precisa</span>
+    </h2>
+    <p class="section-subtitle reveal">
+      Nao importa se voce escreve codigo ou escreve tickets &mdash;
+      o FlashApp transforma dados complexos do seu ambiente de desenvolvimento em
+      insights acionaveis para o seu contexto especifico.
+    </p>
+
+    <div class="persona-grid">
+      <!-- DEV CARD -->
+      <div class="persona-card dev-card reveal">
+        <div class="persona-role-badge dev">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          Desenvolvedor
+        </div>
+        <h3>Atue com clareza mesmo em codebases caoticos</h3>
+        <p class="persona-headline">
+          Antes de tocar na sua proxima feature, entenda o territorio: onde esta o debito tecnico,
+          quais areas sao frageis e como a arquitetura evoluiu. Tome decisoes tecnicas com contexto
+          real, nao chutes.
+        </p>
+        <ul class="persona-benefits">
+          <li>
+            <svg class="check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Mapa visual de debito tecnico &mdash; identifique areas criticas antes de comecar a codar
+          </li>
+          <li>
+            <svg class="check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Contexto de decisoes arquiteturais passadas para nao repetir erros ou quebrar contratos implicitos
+          </li>
+          <li>
+            <svg class="check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Ramp-up acelerado: absorva em horas o conhecimento tribal que levaria meses para acumular
+          </li>
+          <li>
+            <svg class="check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Indicadores de risco por modulo para priorizar onde focar energia de refatoracao
+          </li>
+        </ul>
+        <div class="persona-quote">
+          &ldquo;Sei exatamente onde pisar e o que evitar &mdash; mesmo num sistema que nunca vi antes.&rdquo;
+        </div>
+      </div>
+
+      <!-- PO CARD -->
+      <div class="persona-card po-card reveal reveal-delay-1">
+        <div class="persona-role-badge po">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+          Product Owner
+        </div>
+        <h3>Garanta que seus tickets resolvam a dor real do cliente</h3>
+        <p class="persona-headline">
+          Um ticket bem escrito e a diferenca entre uma entrega que gera valor e uma que gera retrabalho.
+          Avalie se o seu backlog deixa claro qual e o problema do usuario &mdash; antes que chegue ao Dev.
+        </p>
+        <ul class="persona-benefits">
+          <li>
+            <svg class="check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Analise automatica de qualidade de tickets: criterios de aceite, clareza da dor do usuario e valor de negocio
+          </li>
+          <li>
+            <svg class="check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Identifique tickets vagos que provavelmente gerarao questionamentos, bloqueios ou entregas incorretas
+          </li>
+          <li>
+            <svg class="check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Correlacione features do backlog com impacto real: saiba quais historias entregam mais valor por esforco
+          </li>
+          <li>
+            <svg class="check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Visibilidade de como o debito tecnico afeta o custo real de implementacao de cada historia
+          </li>
+        </ul>
+        <div class="persona-quote">
+          &ldquo;Meus tickets chegam ao time com contexto suficiente para gerar valor de verdade, sem ruido.&rdquo;
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPARISON STRIP -->
+    <div class="comparison-strip reveal">
+      <h4><strong>O mesmo dado, perspectivas diferentes</strong> &mdash; cada papel enxerga o que importa para ele</h4>
+      <div class="comparison-rows">
+        <div class="comparison-row">
+          <div class="cell dev-cell">
+            <strong>Dev:</strong> &ldquo;Esse modulo tem alto debito &mdash; preciso de mais tempo e cuidado aqui.&rdquo;
+          </div>
+          <div class="vs">mesmo dado</div>
+          <div class="cell po-cell">
+            <strong>PO:</strong> &ldquo;Features nessa area custam 40% mais para entregar &mdash; devo priorizar de outra forma?&rdquo;
+          </div>
+        </div>
+        <div class="comparison-row">
+          <div class="cell dev-cell">
+            <strong>Dev:</strong> &ldquo;Esse ticket nao deixa claro qual e o comportamento esperado em casos de erro.&rdquo;
+          </div>
+          <div class="vs">mesmo dado</div>
+          <div class="cell po-cell">
+            <strong>PO:</strong> &ldquo;Meu criterio de aceite nao cobre fluxos alternativos &mdash; vou refinar antes de entregar.&rdquo;
+          </div>
+        </div>
+        <div class="comparison-row">
+          <div class="cell dev-cell">
+            <strong>Dev:</strong> &ldquo;Quem tinha o contexto dessa regra de negocio saiu da empresa. Onde encontro isso?&rdquo;
+          </div>
+          <div class="vs">mesmo dado</div>
+          <div class="cell po-cell">
+            <strong>PO:</strong> &ldquo;Tenho visibilidade de quanto conhecimento critico esta concentrado em poucas pessoas.&rdquo;
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─── THE PROBLEM ─── -->
+<section id="problema">
+  <div class="container">
+    <div class="section-label reveal">
+      <span class="icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </span>
+      Secao 01 &mdash; O Problema
+    </div>
+    <h2 class="section-title reveal">
+      O verdadeiro preco do<br>
+      <span class="gradient-text">turnover de talentos</span>
+    </h2>
+    <p class="section-subtitle reveal">
+      Cada desligamento desencadeia uma reacao em cadeia que vai muito alem do custo direto
+      de rescisao. Veja os impactos ocultos que raramente entram na planilha do financeiro.
+    </p>
+
+    <div class="problem-grid">
+      <div class="problem-card reveal">
+        <div class="card-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+        </div>
+        <h3>Descontinuidade de Processos</h3>
+        <p>Cada saida interrompe fluxos de trabalho consolidados. Projetos em andamento perdem ritmo, e o time sobrevivente precisa absorver demandas para as quais nao tem contexto completo.</p>
+      </div>
+      <div class="problem-card reveal reveal-delay-1">
+        <div class="card-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <h3>Custos Recorrentes de Admissao e Demissao</h3>
+        <p>Recrutamento, selecao, onboarding, treinamento, rescisao trabalhista. Cada ciclo consome tempo gerencial e orcamento que poderiam estar sendo investidos em produto.</p>
+      </div>
+      <div class="problem-card reveal reveal-delay-2">
+        <div class="card-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        </div>
+        <h3>Queda de Moral e Produtividade</h3>
+        <p>Quem fica carrega o peso emocional e operacional das saidas. A sobrecarga gera insatisfacao, que gera mais saidas &mdash; alimentando um ciclo destrutivo.</p>
+      </div>
+      <div class="problem-card reveal reveal-delay-3">
+        <div class="card-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+        </div>
+        <h3>Erosao do Capital Intelectual</h3>
+        <p>Conhecimento tacito, decisoes arquiteturais, entendimento de regras de negocio &mdash; tudo isso vai embora com o profissional e nao existe em nenhuma documentacao.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─── COSTS WITH DATA ─── -->
+<section id="custos" style="background:var(--bg-secondary)">
+  <div class="container">
+    <div class="section-label reveal">
+      <span class="icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      </span>
+      Os Numeros
+    </div>
+    <h2 class="section-title reveal">
+      Quanto custa <span class="gradient-text">realmente</span><br>perder um desenvolvedor?
+    </h2>
+    <p class="section-subtitle reveal">
+      Pesquisas de referencia global e dados adaptados para o contexto brasileiro
+      revelam um cenario alarmante para quem calcula apenas o custo de rescisao.
+    </p>
+
+    <div class="stat-blocks">
+      <div class="stat-block purple reveal">
+        <div class="big-number" data-target="213" data-suffix="%">0%</div>
+        <div class="stat-desc">Do salario anual para repor um profissional altamente qualificado</div>
+        <div class="stat-source">Center for American Progress (CAP)</div>
+        <div class="stat-detail">Para cargos de alta especializacao e senioridade, o impacto total vai muito alem do recrutamento &mdash; inclui a perda de produtividade, sobrecarga do time e curva de aprendizado do substituto.</div>
+      </div>
+      <div class="stat-block blue reveal reveal-delay-1">
+        <div class="big-number"><span data-target="50" data-suffix="%">0%</span> a <span data-target="200" data-suffix="%">0%</span></div>
+        <div class="stat-desc">Variacao conforme nivel de senioridade do profissional</div>
+        <div class="stat-source">Society for Human Resource Management (SHRM)</div>
+        <div class="stat-detail">Quanto mais senior e especializado o profissional, mais caro e o turnover. Posicoes de lideranca tecnica representam o maior impacto financeiro e operacional.</div>
+      </div>
+      <div class="stat-block orange reveal reveal-delay-2">
+        <div class="big-number"><span data-target="100" data-suffix="%">0%</span> a <span data-target="150" data-suffix="%">0%</span></div>
+        <div class="stat-desc">Para cargos tecnicos, especializados ou de gestao no Brasil</div>
+        <div class="stat-source">Estimativa contextualizada ao cenario brasileiro</div>
+        <div class="stat-detail">Incluindo recrutamento, selecao, treinamento, tempo de adaptacao e quedas de produtividade. Em um salario de R$&nbsp;20.000/mes, o custo total pode atingir R$&nbsp;360.000.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─── ENGINEERING ABYSS ─── -->
+<section class="abyss-section" id="engenharia">
+  <div class="container">
+    <div class="section-label reveal">
+      <span class="icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      </span>
+      Secao 02 &mdash; O Abismo da Engenharia
+    </div>
+    <h2 class="section-title reveal">
+      Conhecimento tribal e a<br>
+      <span class="gradient-text">patologia do debito tecnico</span>
+    </h2>
+    <p class="section-subtitle reveal">
+      Em times de engenharia de software, o turnover e exponencialmente mais destrutivo.
+      O dominio do codebase nao e um diferencial &mdash; e um pre-requisito inegociavel
+      para gerar valor real.
+    </p>
+
+    <div class="timeline">
+      <div class="timeline-item reveal">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <h3>O Pre-requisito Inegociavel</h3>
+          <p>O dominio do codebase &mdash; entendendo arquitetura, padroes, dependencias, regras de negocio incorporadas no codigo &mdash; e condicao necessaria para que um desenvolvedor gere valor real. Sem esse contexto, ate profissionais brilhantes operam no escuro, introduzindo bugs e decisoes arquiteturais inconsistentes.</p>
+        </div>
+      </div>
+      <div class="timeline-item reveal">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <h3>A Longa Estrada do Ramp-Up</h3>
+          <p>Desenvolver um profissional junior ate o nivel de contribuidor semi-independente exige de <span class="highlight-number">6</span> a <span class="highlight-number">12</span> meses de mentoria intensiva. Em sistemas legados de alta complexidade, esse prazo pode se estender significativamente &mdash; e cada saida reseta o relogio.</p>
+        </div>
+      </div>
+      <div class="timeline-item reveal">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <h3>Debito Tecnico como Multiplicador de Dano</h3>
+          <p>Segundo analise da <strong>McKinsey (2025)</strong>, times de engenharia com alto debito tecnico levam <span class="highlight-number">40%</span> mais tempo (ciclos mais longos) para lancar as mesmas features em comparacao com times de baixo debito. Cada saida nao documentada empilha mais debito.</p>
+        </div>
+      </div>
+      <div class="timeline-item reveal">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <h3>O Ponto sem Retorno</h3>
+          <p>Quando o debito tecnico e o turnover se alimentam mutuamente, o time entra em espiral descendente. Entregas atrasam, qualidade despenca, e a reputacao tecnica da empresa se deteriora &mdash; dificultando ainda mais atrair novos talentos.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─── FATAL CYCLE ─── -->
+<section id="ciclo">
+  <div class="container">
+    <div class="feedback-loop reveal">
+      <div class="section-label" style="justify-content:center">
+        <span class="icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+        </span>
+        O Ciclo Fatal
+      </div>
+      <h3>O <span class="red">Loop de Retroalimentacao Negativa</span> que<br>Destroi Times de Engenharia</h3>
+      <p style="color:var(--text-secondary);max-width:600px;margin:1rem auto 0;font-size:0.95rem;line-height:1.7">
+        Desenvolvedores em ecossistemas caoticos tem <strong style="color:var(--text-primary)">2.5x mais probabilidade de pedir demissao</strong>.
+        A saida gera mais codigo caotico pela perda de contexto, que expulsa mais talentos.
+      </p>
+
+      <div class="loop-visual">
+        <div class="loop-step">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:6px;display:block;margin-left:auto;margin-right:auto"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          Codigo caotico e debito tecnico acumulado
+        </div>
+        <div class="loop-arrow">&rarr;</div>
+        <div class="loop-step">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:6px;display:block;margin-left:auto;margin-right:auto"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+          Talentos insatisfeitos pedem demissao
+        </div>
+        <div class="loop-arrow">&rarr;</div>
+        <div class="loop-step">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:6px;display:block;margin-left:auto;margin-right:auto"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+          Perda de contexto e conhecimento tribal
+        </div>
+        <div class="loop-arrow">&rarr;</div>
+        <div class="loop-step">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:6px;display:block;margin-left:auto;margin-right:auto"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+          Mais codigo caotico gerado por novatos sem contexto
+        </div>
+      </div>
+
+      <div class="multiplier" data-target="2.5" data-suffix="x" data-decimal="true">0x</div>
+      <div class="multiplier-label">mais probabilidade de demissao em ambientes caoticos</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─── CTA ─── -->
+<section class="cta-section" id="solucao">
+  <div class="cta-content">
+    <div class="section-label reveal" style="justify-content:center">
+      <span class="icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      </span>
+      Hora de Agir
+    </div>
+    <h2 class="reveal">
+      Pare de perder talentos.<br>
+      <span class="gradient-text">Comece a reter valor.</span>
+    </h2>
+    <p class="reveal">
+      A <strong>FlashApp</strong> entrega para cada membro do time &mdash; Dev, PO ou EM &mdash;
+      os dados certos para agir. Desenvolvedores navegam codebases complexos com confianca.
+      Product Owners criam tickets que expressam a dor real do cliente. Managers preservam
+      conhecimento institucional antes que ele va embora.
+    </p>
+    <div class="cta-buttons reveal">
+      <a href="#" class="btn btn-primary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+        Agendar uma Demo
+      </a>
+      <a href="#" class="btn btn-secondary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+        Ler o Whitepaper Completo
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ─── FOOTER ─── -->
+<footer>
+  <div class="footer-logo">FlashApp</div>
+  <p style="margin-top:0.5rem">Dados acionaveis para Devs, POs e EMs &mdash; reducao de debito tecnico, retencao de talentos e tickets que entregam valor real.</p>
+  <p style="margin-top:1rem;font-size:0.75rem;color:var(--text-muted)">
+    Fontes: Center for American Progress (CAP) &bull; Society for Human Resource Management (SHRM) &bull; McKinsey & Company (2025)
+  </p>
+</footer>
+
+<!-- ─── SCRIPTS ─── -->
+<script>
+(function () {
+  'use strict';
+
+  /* ── Nav scroll effect ── */
+  var nav = document.getElementById('nav');
+  var scrolledClass = 'scrolled';
+  var lastScroll = 0;
+
+  function onScroll() {
+    var y = window.pageYOffset || document.documentElement.scrollTop;
+    if (y > 60 && lastScroll <= 60) nav.classList.add(scrolledClass);
+    else if (y <= 60 && lastScroll > 60) nav.classList.remove(scrolledClass);
+    lastScroll = y;
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+
+  /* ── Reveal on scroll (IntersectionObserver) ── */
+  var reveals = document.querySelectorAll('.reveal');
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+    reveals.forEach(function (el) { io.observe(el); });
+  } else {
+    reveals.forEach(function (el) { el.classList.add('visible'); });
+  }
+
+  /* ── Animated counters ── */
+  function animateCounter(el, target, suffix, isDecimal, duration) {
+    var start = 0;
+    var startTime = null;
+
+    function ease(t) {
+      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    }
+
+    function step(timestamp) {
+      if (!startTime) startTime = timestamp;
+      var progress = Math.min((timestamp - startTime) / duration, 1);
+      var easedProgress = ease(progress);
+      var current = start + (target - start) * easedProgress;
+
+      if (isDecimal) {
+        el.textContent = current.toFixed(1) + suffix;
+      } else {
+        el.textContent = Math.round(current) + suffix;
+      }
+
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      }
+    }
+
+    requestAnimationFrame(step);
+  }
+
+  var counterEls = document.querySelectorAll('[data-target]');
+  if ('IntersectionObserver' in window) {
+    var counterObserver = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          var el = entry.target;
+          var target = parseFloat(el.getAttribute('data-target'));
+          var suffix = el.getAttribute('data-suffix') || '';
+          var isDecimal = el.getAttribute('data-decimal') === 'true';
+          animateCounter(el, target, suffix, isDecimal, 2000);
+          counterObserver.unobserve(el);
+        }
+      });
+    }, { threshold: 0.5 });
+    counterEls.forEach(function (el) { counterObserver.observe(el); });
+  } else {
+    counterEls.forEach(function (el) {
+      var target = el.getAttribute('data-target');
+      var suffix = el.getAttribute('data-suffix') || '';
+      el.textContent = target + suffix;
+    });
+  }
+
+  /* ── Smooth scroll for nav links ── */
+  document.querySelectorAll('.nav-links a[href^="#"]').forEach(function (link) {
+    link.addEventListener('click', function (e) {
+      e.preventDefault();
+      var targetId = this.getAttribute('href').substring(1);
+      var targetEl = document.getElementById(targetId);
+      if (targetEl) {
+        var navHeight = nav.offsetHeight;
+        var targetPos = targetEl.getBoundingClientRect().top + window.pageYOffset - navHeight - 20;
+        window.scrollTo({ top: targetPos, behavior: 'smooth' });
+      }
+    });
+  });
+
+})();
+</script>
+</body>
+</html>
